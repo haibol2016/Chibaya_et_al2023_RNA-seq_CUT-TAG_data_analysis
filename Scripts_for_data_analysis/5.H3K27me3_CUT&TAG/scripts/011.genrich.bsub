@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 8:00 #limit the job to be finished in 12 hours
+#BSUB -J "genrich[1]"
+#BSUB -q long   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(1593812)"
+
+i=$(($LSB_JOBINDEX - 1))
+mkdir -p logs
+
+genrich=/home/hl84w/work/mccb/bin/Genrich/Genrich
+set -euo pipefail
+#names=(`awk 'BEGIN{FS=OFS="\t"} $2 >= 1500000 {print $1}' docs/uniq.frags.per.library.txt | perl -p -e 's{\d$}{}' | sort -u ` TP V)
+names=(PIL_TP)
+bam=(`ls results/007.2.namesort.out/${names[$i]}*.bam `)
+bams=$(printf ",%s"  "${bam[@]}")
+bams=${bams:1}
+blacklist=docs/GRCm38-blacklist.v2.bed
+
+out=results/008.2.Genrich.out
+mkdir -p $out
+
+
+$genrich -t  $bams  -o $out/${names[$i]}.q0.05.Genrich.narrowPeak \
+         -k $out/${names[$i]}.q0.05.Genrich.bedGraph   -y -x -e MT -m 20 -v -q 0.05 -E $blacklist 

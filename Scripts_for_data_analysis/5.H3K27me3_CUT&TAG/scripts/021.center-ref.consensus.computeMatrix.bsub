@@ -1,0 +1,40 @@
+#!/bin/bash
+#BSUB -n 12 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=12000] # ask for memory 32G
+#BSUB -W 12:00 #limit the job to be finished in 72 hours
+#BSUB -J "computeMatrix[1-4]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+perl=/usr/bin/perl
+module load deeptools/3.0.2_py36_0
+
+source /share/pkg/condas/2018-05-11/bin/activate && conda activate deeptools_3.0.2_py36_0
+
+bed=results/010.DiffBind.out/H3K27me3.130651.peaks.6col.bed
+blacklist=docs/GRCm38-blacklist.v2.bed
+in=results/009.samplewise.bw.out
+group=(PIP_TP PIP_V TP V)
+bigwigs=(`ls $in/${group[$i]}*.bigwig `)
+labels=(`ls $in/${group[$i]}*.bigwig  | perl -p -e 's{.+/(.+?).bigwig}{$1}'`)
+
+out=results/014.center-ref.consensus.computeMatrix.out
+mkdir -p $out
+
+
+computeMatrix reference-point  \
+       --referencePoint center \
+       --samplesLabel  ${labels[@]} \
+       --beforeRegionStartLength 3000 \
+       --afterRegionStartLength  3000 \
+       --binSize 10 \
+       --numberOfProcessors 8 \
+       -R ${bed} \
+       -S ${bigwigs[@]}  \
+       --blackListFileName ${blacklist} \
+       -o $out/${group[$i]}.matrix.gz \
+       --outFileSortedRegions $out/${group[$i]}.srtRegions.bed

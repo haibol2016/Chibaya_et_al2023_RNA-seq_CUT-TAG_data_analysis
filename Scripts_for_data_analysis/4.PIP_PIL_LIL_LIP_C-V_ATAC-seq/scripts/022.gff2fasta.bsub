@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=32000] # ask for memory 32G
+#BSUB -W 72:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[1]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+module load bedtools/2.28.0
+
+fasta=~/work/mccb/genome/Homo_sapiens/human_gencode_v34/GRCh38.primary_assembly.genome.fa
+gff=~/work/mccb/genome/Homo_sapiens/human_gencode_v34/gencode.v34.primary_assembly.annotation.gff3
+
+~/work/mccb/bin/gffread-0.11.8.Linux_x86_64/gffread  -w transcripts.fa -g $fasta  $gff

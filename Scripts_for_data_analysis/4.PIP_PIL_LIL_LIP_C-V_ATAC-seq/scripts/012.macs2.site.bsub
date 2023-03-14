@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#BSUB -n 1  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=16000] # ask for memory 5G
+#BSUB -W 12:00 #limit the job to be finished in 12 hours
+#BSUB -J "genrich[1-12]"
+#BSUB -q long   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(5423513)"
+
+i=$(($LSB_JOBINDEX - 1))
+mkdir -p logs
+
+bams=(`ls results/009.filtered.bam.out/NW*.sorted.bam`)
+names=(`ls results/009.filtered.bam.out/NW*.sorted.bam | perl -p -e 's{.+/(.+?)\..+}{$1}'`)
+out=results/012.MACS2.site.out
+mkdir -p $out
+
+conda activate MACS2
+macs2 callpeak -t ${bams[$i]} -f BAM --nomodel --shift -75 \
+               --extsize 150 -g hs -q 0.05 --keep-dup all -n $out/${names[$i]}.macs2.site -B

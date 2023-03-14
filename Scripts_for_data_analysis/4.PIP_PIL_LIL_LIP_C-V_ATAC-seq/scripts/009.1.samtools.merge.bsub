@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#BSUB -n 4  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=12000] # ask for memory 5G
+#BSUB -W 8:00 #limit the job to be finished in 12 hours
+#BSUB -J "samtools[7-8]"
+#BSUB -q long  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(8106627)"
+
+i=$(($LSB_JOBINDEX- 1))
+mkdir -p logs
+ 
+module load samtools/1.9 
+
+in=results/009.samtools.merge.out/coord.sort.bam
+samples=(`ls $in/*.bam | perl -p -e 's{.+/(.+?)-.+}{$1}' | uniq`)
+bam=(`ls $in/${samples[$i]}*.bam`)
+
+out=results/010.sample.bam.out
+mkdir -p $out
+
+samtools merge -l  9 -O BAM -@ 4  $out/${samples[$i]}.coord.sort.merge.bam  ${bam[@]}
+
+samtools index $out/${samples[$i]}.coord.sort.merge.bam 
+

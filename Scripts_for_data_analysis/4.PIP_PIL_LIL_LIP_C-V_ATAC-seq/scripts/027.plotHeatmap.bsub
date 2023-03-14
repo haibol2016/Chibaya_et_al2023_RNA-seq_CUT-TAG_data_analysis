@@ -1,0 +1,34 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=96000] # ask for memory 32G
+#BSUB -W 12:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[1]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(8318198)"
+
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+module load deeptools/3.0.2_py36_0
+
+source /share/pkg/condas/2018-05-11/bin/activate && conda activate deeptools_3.0.2_py36_0
+
+in=results/025.center-ref.consensus.computeMatrix.out
+matrix=(`ls $in/*.matrix.gz`)
+
+groups=(`ls $in/*.matrix.gz | perl -p -e 's{.+/(.+?).matrix.gz}{$1}'`)
+
+
+plotHeatmap -m ${matrix[$i]} \
+     --outFileName  $in/${groups[$i]}.heatmap.pdf \
+     --colorMap Blues \
+     --regionsLabel "Peaks" \
+     --yAxisLabel "Intensity" \
+     --xAxisLabel  "" \
+     --whatToShow 'plot, heatmap and colorbar' \
+     --refPointLabel "Peak center" \
+     --heatmapHeight 15   

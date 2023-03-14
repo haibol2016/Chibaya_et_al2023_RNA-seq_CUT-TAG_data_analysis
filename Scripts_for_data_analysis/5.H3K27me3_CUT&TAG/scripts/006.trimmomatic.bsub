@@ -1,0 +1,35 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 5G
+#BSUB -W 4:00 #limit the job to be finished in 12 hours
+#BSUB -J "fastQC[1-53]"
+#BSUB -q short   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+###BSUB -w "done(5423513)"
+
+i=$(($LSB_JOBINDEX- 1))
+mkdir -p logs
+
+
+out=trimmed.data
+
+mkdir -p $out
+
+module load trimmomatic/0.32
+
+in_dir=data
+R1=(`ls ${in_dir}/*_1.fq.gz`)
+R2=(`ls ${in_dir}/*_2.fq.gz`)
+adapter=docs/atac.adapter.fa
+
+name=(`ls ${in_dir}/*_1.fq.gz | perl -p -e   's{.+/(.+?)_1.fq.gz}{$1}g' `)
+
+java -jar  /share/pkg/trimmomatic/0.32/trimmomatic-0.32.jar  PE -threads 8 \
+          -phred33 ${R1[$i]} ${R2[$i]} \
+          $out/${name[$i]}.R1Ptrim.fastq.gz  $out/${name[$i]}.R1Utrim.fastq.gz \
+          $out/${name[$i]}.R2Ptrim.fastq.gz  $out/${name[$i]}.R2Utrim.fastq.gz  \
+          ILLUMINACLIP:${adapter}:2:25:7:1:true  TRAILING:3 \
+          SLIDINGWINDOW:4:15  TRAILING:3 MINLEN:25

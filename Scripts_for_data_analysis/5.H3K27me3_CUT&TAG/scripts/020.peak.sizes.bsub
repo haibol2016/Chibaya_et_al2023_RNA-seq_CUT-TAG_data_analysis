@@ -1,0 +1,24 @@
+#!/bin/bash
+#BSUB -n 8 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 32G
+#BSUB -W 72:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[1-8]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+
+in=results/008.Genrich.out
+
+bw=(`ls $in/*.narrowPeak`)
+
+labels=(`ls $in/*.narrowPeak | perl -p -e 's{.+/(.+?).q0.05.Genrich.narrowPeak}{${1}-H3K27me3}'`)
+
+out=$in
+mkdir -p $out
+
+awk 'BEGIN{FS=OFS="\t"} {print $3-$2}' ${bw[$i]} > ${labels[$i]}.peaksize.txt

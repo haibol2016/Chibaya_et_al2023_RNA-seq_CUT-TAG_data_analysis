@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#BSUB -n 8 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 12:00 #limit the job to be finished in 12 hours
+#BSUB -J "fastqc[1-32]"
+#BSUB -q long  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(8129543)"
+
+
+i=$(($LSB_JOBINDEX- 1))
+
+mkdir -p logs
+
+module load samtools/1.9
+
+bam=(`ls results/008.markdup.bam.out/*SE*.bam`)
+names=(`ls results/008.markdup.bam.out/*SE*.bam  | perl -p -e 's{.+/(.+?).rmvdup.bam}{$1}'`)
+
+out=results/009.filtered.bam.out
+mkdir -p $out
+
+chromosomes=(`cat docs/mouse.GCRm38.nuc.chr.list`)
+
+## filtering BAM files to remove mitochondrial reads and other alignments of no interest
+samtools view  -h -bu -F 0x100  -F 0x200 -F 0x400 -F 0x800  -F 4  -q 20   ${bam[${i}]}   ${chromosomes[@]} | \
+     samtools sort -l 9 -m 8G  -o  $out/${names[${i}]}.filted.sorted.bam  -O BAM -@ 8  -
+ 
+samtools index  -@ 1  $out/${names[${i}]}.filted.sorted.bam
+
+

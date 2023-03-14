@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#BSUB -n 1  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 5G
+#BSUB -W 8:00 #limit the job to be finished in 12 hours
+#BSUB -J "bwa[1-4]"
+#BSUB -q long  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(8106627)"
+
+i=$(($LSB_JOBINDEX- 1))
+mkdir -p logs
+ 
+module load samtools/1.9 
+
+in=results/004.2.markdup.bam.out
+bam=(`ls $in/*.bam`)
+name=(`ls $in/*.bam | perl -p -e 's{.+/(.+?).rmvdup.bam}{$1}'`)
+out=results/005.2.samtools.stat.out
+mkdir -p $out
+
+samtools idxstats -@ 1  ${bam[$i]}  > $out/${name[$i]}.idxstats.out
+samtools flagstat -@ 1  ${bam[$i]}  > $out/${name[$i]}.flagstat.out
+samtools stats  -@ 1  ${bam[$i]}  > $out/${name[$i]}.stats.out

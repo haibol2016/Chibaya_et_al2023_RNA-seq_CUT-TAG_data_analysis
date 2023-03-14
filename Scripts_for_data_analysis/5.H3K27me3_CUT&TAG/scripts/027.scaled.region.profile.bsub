@@ -1,0 +1,51 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=32000] # ask for memory 32G
+#BSUB -W  4:00 #limit the job to be finished in 72 hours
+#BSUB -J "computeMatrix[2-4]"
+#BSUB -q short  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(5384914)"
+
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+module load deeptools/3.0.2_py36_0
+
+source /share/pkg/condas/2018-05-11/bin/activate && conda activate deeptools_3.0.2_py36_0
+
+in=results/016.87.SASP.gernes.computeMatrix.out
+matrix=(`ls $in/*.matrix.gz`)
+name=(`ls $in/*.matrix.gz | perl -p -e 's{.+/(.+?).matrix.gz}{$1}'`)
+
+out=results/016.87.SASP.gernes.computeMatrix.out
+mkdir -p $out
+
+if [ $i -eq 0 ] ||  [ $i -eq 1 ]; then
+  col=("#e6194B" "#f58231" "#bfef45" "#3cb44b")
+elif [ $i -eq 2 ]; then
+  col=("#e6194B" "#f58231" "#bfef45")
+else
+  col=("#e6194B" "#f58231")
+fi
+
+
+
+plotProfile -m ${matrix[$i]} \
+              -out $out/${name[$i]}.pdf \
+              --outFileSortedRegions $out/${name[$i]}.srt.regions  \
+              --outFileNameData $out/${name[$i]}.tab \
+              --numPlotsPerRow 2 \
+              --averageType mean \
+              --plotHeight 5 \
+              --plotWidth  7.5 \
+              --startLabel TSS \
+              --endLabel   TES \
+              --plotType lines \
+              --perGroup \
+              --colors  ${col[@]}  \
+              --plotFileFormat  pdf \
+              --plotTitle "Test data profile"

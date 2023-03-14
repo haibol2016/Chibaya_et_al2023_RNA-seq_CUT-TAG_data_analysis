@@ -1,0 +1,26 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 32G
+#BSUB -W 4:00 #limit the job to be finished in 72 hours
+#BSUB -J "bigwigCompare[1-7]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+up_DAR=(`ls results/014.DAR.BED.out/shruken.LFC/DAR_UP/*txt`)
+down_DAR=(`ls results/014.DAR.BED.out/shruken.LFC/DAR_DOWN/*.txt`)
+
+bed=(`ls results/014.DAR.BED.out/shruken.LFC/contrast_of_interest.bed/*.bed`)
+name=(`ls results/014.DAR.BED.out/shruken.LFC/contrast_of_interest.bed/*.bed | perl -p -e 's{.+/(.+?).bed}{$1}'`)
+
+up_out=results/036.up.DAR.bed
+down_out=results/036.down.DAR.bed
+
+mkdir -p ${up_out} ${down_out}
+
+grep -F -w -f ${up_DAR[$i]}  ${bed[$i]}  > ${up_out}/${name[$i]}.up.bed
+grep -F -w -f ${down_DAR[$i]}  ${bed[$i]}  > ${down_out}/${name[$i]}.down.bed

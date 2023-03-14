@@ -1,0 +1,28 @@
+#!/bin/bash
+#BSUB -n 8 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 32G
+#BSUB -W 72:00 #limit the job to be finished in 72 hours
+#BSUB -J "salmon[1-12]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+R1=(`ls RNA-seq.data/*_R1_*gz`)
+R2=(`ls RNA-seq.data/*_R2_*gz`)
+names=(`ls RNA-seq.data/*_R1_*gz | perl -p -e 's{.+/(.+?)_.+}{$1}'`)
+
+transcripts_index=~/work/mccb/genome/Homo_sapiens/human_gencode_v34/GRCh38.gencode.V34.gentrome.salmon_index
+out=results/023.salmon.quant.out/${names[$i]}
+
+mkdir -p $out
+
+salmon quant -i ${transcripts_index} \
+             --threads 8 \
+             --seqBias --gcBias --posBias   --softclip  --softclipOverhangs \
+             --biasSpeedSamp 5 \
+             -l IU  -1 ${R1[$i]}  -2 ${R2[$i]} \
+             --validateMappings -o $out

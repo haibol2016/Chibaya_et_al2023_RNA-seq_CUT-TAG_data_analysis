@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 12:00 #limit the job to be finished in 12 hours
+#BSUB -J "genrich[1-4]"
+#BSUB -q long   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(5423513)"
+
+i=$(($LSB_JOBINDEX - 1))
+mkdir -p logs
+
+
+trt=(Parent_CK Parent_TRT Parent_CK Resist_CK)
+cntrl=(Parent_TRT Resist_TRT Resist_CK  Resist_TRT)
+
+
+out=results/014.diffReps.out
+mkdir -p $out
+
+in=results/013.bam2bed.out
+ref_length=~/work/mccb/genome/Homo_sapiens/human_gencode_v34/GRCh38.primary_assembly.genome.chr.length
+
+chip_trt=(`ls $in/${trt[$i]}*.bed`)
+chip_cntrl=(`ls $in/${cntrl[$i]}*.bed`)
+
+
+diffReps.pl --treatment ${chip_trt[@]}  \
+            --control  ${chip_cntrl[@]} \
+            --mode peak \
+            --window 1000 --step 100 \
+            --nsd sharp \
+            --meth nb --pval 0.0001 \
+            --nrpass 1 \
+            --frag 70 \
+            --nproc 8 \
+            --noanno  --nohs \
+            --report $out/${trt[$i]}.vs.${cntrl[$i]}.diffReps.peaks  \
+            --chrlen ${ref_length}
+
+

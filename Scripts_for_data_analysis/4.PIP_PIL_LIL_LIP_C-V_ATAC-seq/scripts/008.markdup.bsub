@@ -1,0 +1,46 @@
+#!/bin/bash
+
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=32000] # ask for memory 5G
+#BSUB -W 12:00 #limit the job to be finished in 12 hours
+#BSUB -J "fastqc[16]"
+#BSUB -q long  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(9390578)"
+
+
+i=$(($LSB_JOBINDEX- 1))
+
+mkdir -p logs
+
+module load  jdk/1.8.0_77 
+PICARD=~/work/mccb/bin/picard-2.9.0/picard.jar
+
+
+bams=(`ls results/007.bwa.out/*.bam`)
+names=(`ls results/007.bwa.out/*.bam  | perl -p -e 's{.+/(.+?).sort.bam}{$1}'`)
+
+out=results/008.markdup.bam.out
+mkdir -p $out
+
+fasta=~/work/mccb/genome/Homo_sapiens/human_gencode_v34/GRCh38.primary_assembly.genome.fa
+
+## NextSeq uses  unpatterned flow cells: OPTICAL_DUPLICATE_PIXEL_DISTANCE=100
+## patterned flow cells OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500
+
+java -jar -Xmx24G -Djava.io.tmpdir=$TMPDIR  $PICARD MarkDuplicates  \
+      I=${bams[$i]}  \
+      R=$fasta  \
+      O=${out}/${names[$i]}.rmvdup.bam \
+      CREATE_INDEX=true \
+      REMOVE_DUPLICATES=true \
+      REMOVE_SEQUENCING_DUPLICATES=true \
+      MAX_RECORDS_IN_RAM=null \
+      MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000 \
+      ASSUME_SORT_ORDER=coordinate  \
+      OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500 \
+      M=${out}/${names[$i]}.markdup_metrics.txt
+
+

@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#BSUB -n 1  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 4:00 #limit the job to be finished in 12 hours
+#BSUB -J "genrich[1]"
+#BSUB -q short    # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(5423513)"
+
+i=$(($LSB_JOBINDEX - 1))
+mkdir -p logs
+
+
+module load bedtools/2.27.1
+
+in=results/012.MACS2.site.out
+narrowPeak=(`ls $in/*.macs2.site_peaks.narrowPeak`)
+
+out=results/015.narrowPeak2bed.out
+
+genome=~/work/mccb/genome/Homo_sapiens/human_gencode_v34/GRCh38.primary_assembly.genome.chr.length
+
+mkdir -p $out
+
+cut -f1-3 ${narrowPeak[@]} | bedtools sort -g $genome -i - | \
+         bedtools merge -i - |perl scripts/016.bed.gtf.pl  > $out/MACS2.narrowPeak.merged.consensusPeak.gtf

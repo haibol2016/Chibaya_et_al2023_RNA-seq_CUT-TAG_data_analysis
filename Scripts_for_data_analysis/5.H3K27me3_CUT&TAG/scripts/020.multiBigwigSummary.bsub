@@ -1,0 +1,33 @@
+#!/bin/bash
+#BSUB -n 8 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 32G
+#BSUB -W 72:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[1]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+module load deeptools/3.0.2_py36_0
+
+source /share/pkg/condas/2018-05-11/bin/activate && conda activate deeptools_3.0.2_py36_0
+
+in=results/012.group.bigwig.out/
+
+bw=(`ls $in/*.bigwig`)
+
+labels=(`ls $in/*.bigwig | perl -p -e 's{.+/(.+?)-me.+}{$1.H3K27me3}'`)
+
+out=results/011.multibwsummary.out
+mkdir -p $out
+
+multiBigwigSummary bins  -b ${bw[@]} --outFileName  $out/001.H3K27me3.multiBwig.summary.npz \
+                         --numberOfProcessors 8 \
+                         --blackListFileName docs/mm10-blacklist.v2.bed  \
+                         --binSize 5000  \
+                         --chromosomesToSkip MT \
+                         --labels ${labels[@]}
+

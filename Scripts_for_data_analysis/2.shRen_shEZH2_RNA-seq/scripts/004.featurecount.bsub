@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 12:00 #limit the job to be finished in 12 hours
+#BSUB -J "star[1]"
+#BSUB -q long  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+#BSUB -w "done(3468063)"
+
+i=$(($LSB_JOBINDEX- 1))
+
+module load subread/1.6.2 
+module load samtools/1.9
+
+bam=(results/003.STAR.out/*.bam)
+
+count_table=(Marcus_RNAseq)
+out=results/004.featureCount.out
+mkdir -p $out
+
+fasta=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.dna.primary_assembly.fa
+gtf=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.101.gtf
+
+#### paired end mapping
+featureCounts  -p  -d 25 -D 1000 -s 0  -F GTF -g gene_id \
+               -G $fasta  -t exon  -T 8   -a $gtf -o $out/${count_table[$i]}.PE  ${bam[@]}
+cut -f 2-6 --complement $out/${count_table[$i]}.PE  | perl -p -e 's/^#.+$//' >  $out/${count_table[$i]}.PE.formatted.txt
+
+
+
+

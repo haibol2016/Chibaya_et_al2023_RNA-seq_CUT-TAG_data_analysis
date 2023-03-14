@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=16000] # ask for memory 32G
+#BSUB -W 4:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[1]"
+#BSUB -q short  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+eval "$(conda shell.bash hook)"
+conda activate
+
+
+Rscript scripts/000.makeTxDbFromGTF.R 

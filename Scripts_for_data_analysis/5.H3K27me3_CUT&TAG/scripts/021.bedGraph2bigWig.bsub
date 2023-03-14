@@ -1,0 +1,25 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 32G
+#BSUB -W 4:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[1-4]"
+#BSUB -q short # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+#BSUB -w "done(2546573)" 
+
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+chrom_size=docs/Mus_musculus_GRCm38.p5.chromosome.sizes
+
+in=results/010.groupwise.median.bedgraph.out
+bedgraph=(`ls $in/*.bedgraph`)
+names=(`ls $in/*.bedgraph | /usr/bin/perl -p -e 's{.+/(.+?).bedgraph}{$1}'`)
+out=results/012.group.median.bigwig.out
+mkdir -p $out
+
+~/work/mccb/bin/ucsc_utils_linux.x86_64/bedGraphToBigWig ${bedgraph[$i]}  ${chrom_size} $out/${names[$i]}.bigwig        
+

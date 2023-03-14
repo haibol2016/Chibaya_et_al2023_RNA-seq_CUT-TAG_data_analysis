@@ -1,0 +1,42 @@
+#!/bin/bash
+#BSUB -n 1  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 32G
+#BSUB -W 24:00 #limit the job to be finished in 72 hours
+#BSUB -J "homer[1-88]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(745124)"
+
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+gmt=(`ls docs/gene_symbol/*.gmt | grep -v  'C1.gmt'`)
+rank_file=(`ls docs/rank.files/*.rnk`)
+
+gene_set=()
+rnk=()
+for j in ${rank_file[@]}
+do
+   for k in  ${gmt[@]}
+   do 
+        rnk+=($j)
+        gene_set+=($k)
+   done
+done
+
+gene=`basename ${gene_set[$i]}`
+rank=`basename ${rnk[$i]}`
+
+out_dir=results/009.old.RANA-seq.GSEA.out
+mkdir -p  ${out_dir}
+
+docs/GSEA_Linux_4.1.0/gsea-cli.sh GSEAPreranked -gmx ${gene_set[$i]} -collapse No_Collapse -mode Max_probe -norm meandiv \
+  -nperm 1000 -rnk ${rnk[$i]} -scoring_scheme weighted -rpt_label ${rank}_${gene} -create_svgs true \
+  -include_only_symbols true -make_sets true -plot_top_x 100 -rnd_seed timestamp \
+  -set_max 1000 -set_min 10 -zip_report true -out ${out_dir}
+
+
+

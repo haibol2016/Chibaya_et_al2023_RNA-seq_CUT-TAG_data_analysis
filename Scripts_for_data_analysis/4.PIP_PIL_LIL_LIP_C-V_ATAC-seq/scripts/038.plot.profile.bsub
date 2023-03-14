@@ -1,0 +1,38 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 32G
+#BSUB -W  4:00 #limit the job to be finished in 72 hours
+#BSUB -J "computeMatrix[1-7]"
+#BSUB -q short  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+module load deeptools/3.0.2_py36_0
+
+source /share/pkg/condas/2018-05-11/bin/activate && conda activate deeptools_3.0.2_py36_0
+
+in=results/037.DAR.down.center-ref.computeMatrix.out
+matrix=(`ls $in/*.matrix.gz`)
+name=(`ls $in/*.matrix.gz | perl -p -e 's{.+/(.+?).matrix.gz}{$1}'`)
+
+out=results/038.DAR.down.deeptool.plots
+mkdir -p $out
+
+plotProfile -m ${matrix[$i]} \
+              -out $out/${name[$i]}.pdf \
+              --outFileSortedRegions $out/${name[$i]}.srt.regions  \
+              --outFileNameData $out/${name[$i]}.tab \
+              --numPlotsPerRow 2 \
+              --averageType mean \
+              --plotHeight 5 \
+              --plotWidth  7.5 \
+              --plotType lines \
+              --colors red blue \
+              --refPointLabel  center \
+              --perGroup \
+              --plotFileFormat  pdf \
+              --plotTitle "Test data profile"

@@ -1,0 +1,30 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=16000] # ask for memory 32G
+#BSUB -W 12:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[1]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+module load deeptools/3.0.2_py36_0
+
+source /share/pkg/condas/2018-05-11/bin/activate && conda activate deeptools_3.0.2_py36_0
+
+in=results/025.multibwsummary.out
+matrix=${in}/ATACseq.multiBwig.summary.npz
+
+groups=(`ls $in/*.TSS.gz | perl -p -e 's{.+/(.+?)\..+}{$1}'`)
+
+
+plotPCA -in ${matrix} \
+       --transpose \
+       --plotHeight 10  \
+       --plotWidth 8 \
+       --outFileNameData  $in/ATACseq.PCA_2.data \
+       -o  $in/ATACseq.PCA_2.pdf 

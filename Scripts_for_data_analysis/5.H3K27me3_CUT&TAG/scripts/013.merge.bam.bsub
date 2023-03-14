@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 5G
+#BSUB -W 24:00 #limit the job to be finished in 12 hours
+#BSUB -J "bismark[1-6]"
+#BSUB -q long   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(2791822)"
+
+i=$(($LSB_JOBINDEX - 1))
+mkdir -p logs
+set -e
+set -u
+set -o pipefail
+
+module load samtools/1.9
+module load bedtools/2.29.2
+
+in=results/007.sorted.bam
+out=results/008.merged.BAM.out
+bam_A=(`ls $in/*A.sort.bam`) 
+bam_B=(`ls $in/*B.sort.bam`)
+name=(`ls $in/*A.sort.bam | perl -p -e s'{.+/(.+?)[AB].sort.bam}{$1}'`)
+
+mkdir -p $out
+chromosomes=(`samtools view -H results/007.sorted.bam/CTCFA.sort.bam  |grep '^@SQ' |perl -p -e 's{.+?SN:(.+?)\t+.+}{$1}' | grep -v 'chrM'`)
+
+
+## no ChrM
+samtools view -h  -F 0x04 -F 256  -q 2 -f 0x02   ${bam_A[$i]}  ${chromosomes[@]} |\
+           awk 'BEGIN{FS=OFS="\t"} ($9 < 1000 && $9 > -1000 && ($2 == 99 || $2 == 147 || $2 == 83 || $2 == 163)) || /^@/' | \
+           samtools sort -m 4G -O BAM -o $out/${name[$i]}A.flt.bam  -@ 8 -  
+samtools index $out/${name[$i]}A.flt.bam
+
+samtools view -h  -F 0x04 -F 256  -q 2 -f 0x02   ${bam_B[$i]}  ${chromosomes[@]} | \
+           awk 'BEGIN{FS=OFS="\t"} ($9 < 1000 && $9 > -1000  && ($2 == 99 || $2 == 147 || $2 == 83 || $2 == 163)) || /^@/' | \
+           samtools sort -m 4G -O BAM -o $out/${name[$i]}B.flt.bam  -@ 8 -
+samtools index $out/${name[$i]}B.flt.bam
+
+samtools merge -@ 8 -f -O BAM -  $out/${name[$i]}A.flt.bam  $out/${name[$i]}B.flt.bam | \
+           bedtools genomecov -ibam - -bg -pc  > $out/${name[$i]}.BS-seq.bedgraph

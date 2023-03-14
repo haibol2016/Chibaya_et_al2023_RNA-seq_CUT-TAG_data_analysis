@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 32G
+#BSUB -W 12:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[1-4]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+peaks=(`ls results/012.MACS2.site.out/*.narrowPeak`)
+group=(Parental_CK Parental_TRT Resistant_CK Resistant_TRT)
+
+j=$(($i * 3))
+cat ${peaks[@]:$j:3}  | sort -k1,1 -k2,2n | bedtools merge -c 4,5,6,7,8,9,10 -o collapse,max,distinct,max,max,max,max > results/012.MACS2.site.out/${group[$i]}.union.merge.narrowPeak 

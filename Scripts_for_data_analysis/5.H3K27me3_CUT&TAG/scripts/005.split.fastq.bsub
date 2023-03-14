@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#BSUB -n 2  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 12:00 #limit the job to be finished in 12 hours
+#BSUB -J "star[1]%50"
+#BSUB -q long    # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+
+i=$(($LSB_JOBINDEX- 1))
+mkdir -p logs
+
+set -e 
+set -u
+set -o pipefail
+
+R1=data/RTP2_R1.fastq.gz
+R2=data/RTP2_R2.fastq.gz
+base=`basename  ${R1} _R1.fastq.gz`
+out=data
+
+zcat $R1 | split --lines=80000000 --filter='gzip > ${FILE}.fastq.gz' - $out/${base}_R1_ 
+zcat $R2 | split --lines=80000000 --filter='gzip > ${FILE}.fastq.gz' - $out/${base}_R2_ 

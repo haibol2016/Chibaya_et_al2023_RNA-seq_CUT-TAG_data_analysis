@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 8:00 #limit the job to be finished in 12 hours
+#BSUB -J "genrich[1-4]"
+#BSUB -q long   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(5423513)"
+
+i=$(($LSB_JOBINDEX - 1))
+mkdir -p logs
+
+module load samtools/1.9
+set -euo pipefail
+
+#name=(`awk 'BEGIN{FS=OFS="\t"} $2 >= 1000000 {print $1}' docs/uniq.frags.per.library.txt | uniq`)
+bam=(`ls results/004.2.markdup.bam.out/*.bam `)
+name=(`ls results/004.2.markdup.bam.out/*.bam | perl -p -e 's{.+/(.+?)\.rmvdup.bam}{$1}'`)
+out=results/007.2.namesort.out
+mkdir -p $out
+samtools sort -n  -l 5 -m 8G -o $out/${name[$i]}.namesort.bam  -O BAM -@ 8  ${bam[0]}

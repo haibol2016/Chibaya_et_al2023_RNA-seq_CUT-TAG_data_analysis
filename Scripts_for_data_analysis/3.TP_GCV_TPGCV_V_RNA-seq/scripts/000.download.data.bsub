@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#BSUB -n 1  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 5G
+#BSUB -W 24:00 #limit the job to be finished in 12 hours
+#BSUB -J "wget[1-63]"
+#BSUB -q long   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(5423513)"
+
+i=$(($LSB_JOBINDEX- 1))
+mkdir -p logs
+
+links=(`cat docs/X202SC21092027-Z01-F001.csv`)
+wget -r  -t 10 --directory-prefix data -c ${links[$i]}
+

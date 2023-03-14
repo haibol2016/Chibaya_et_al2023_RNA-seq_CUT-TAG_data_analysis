@@ -1,0 +1,40 @@
+#!/bin/bash
+#BSUB -n 8 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=12000] # ask for memory 32G
+#BSUB -W 12:00 #limit the job to be finished in 72 hours
+#BSUB -J "computeMatrix[1-4]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+module load deeptools/3.0.2_py36_0
+
+source /share/pkg/condas/2018-05-11/bin/activate && conda activate deeptools_3.0.2_py36_0
+
+gtf=docs/87.custom.SASP.genes.gtf
+blacklist=docs/GRCm38-blacklist.v2.bed
+in=results/009.samplewise.bw.out
+group=(PIP_TP PIP_V TP V)
+bigwigs=(`ls $in/${group[$i]}*.bigwig `)
+labels=(`ls $in/${group[$i]}*.bigwig  | perl -p -e 's{.+/(.+?).bigwig}{$1}'`)
+
+out=results/016.87.SASP.gernes.computeMatrix.out
+mkdir -p $out
+
+
+computeMatrix scale-regions  \
+       --samplesLabel  ${labels[@]} \
+       --beforeRegionStartLength 3000 \
+       --afterRegionStartLength  3000 \
+       --binSize 10 \
+       --numberOfProcessors 8 \
+       -R ${gtf} \
+       --transcriptID transcript \
+       -S ${bigwigs[@]}  \
+       --blackListFileName ${blacklist} \
+       -o $out/001.${group[$i]}.scaled.regions.consensus.matrix.gz \
+       --outFileSortedRegions $out/001.${group[$i]}.scaled.consensus.srtRegions.bed

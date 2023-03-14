@@ -1,0 +1,27 @@
+#!/bin/bash
+
+#BSUB -n 4  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 5G
+#BSUB -W 4:00 #limit the job to be finished in 12 hours
+#BSUB -J "fastQC[1-23]"
+#BSUB -q short   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(5423513)"
+
+i=$(($LSB_JOBINDEX- 1))
+mkdir -p logs
+
+
+sample=(LIP_TP1 LIP_TP2 LIP_TP3 LIP_TP4 LIP_TP5 LIP_TP6 LIP_V1 LIP_V2 LIP_V3 LIP_V4 LIP_V5 LIP_V6 PIP_TP1 PIP_TP2 PIP_TP3 PIP_TP4 PIP_TP5 PIP_V1 PIP_V2 PIP_V3 PIP_V4 PIP_V5 PIP_V6)
+
+R1=(`ls ~/marcus_ruscetti/CUTTag/10202022/{Sequencing_run1,Sequencing_run2}/01.RawData/*/*${sample[$i]}*_1.fq.gz`)
+R2=(`ls ~/marcus_ruscetti/CUTTag/10202022/{Sequencing_run1,Sequencing_run2}/01.RawData/*/*${sample[$i]}*_2.fq.gz`)
+out=data
+
+mkdir -p $out
+
+cat ${R1[@]} > $out/${sample[$i]}_1.fq.gz
+
+cat ${R2[@]} > $out/${sample[$i]}_2.fq.gz

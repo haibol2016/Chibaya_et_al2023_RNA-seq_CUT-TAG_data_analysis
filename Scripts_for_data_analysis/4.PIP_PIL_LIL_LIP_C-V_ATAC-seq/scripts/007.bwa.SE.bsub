@@ -1,0 +1,36 @@
+#!/bin/bash
+
+#BSUB -n 4  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 5G
+#BSUB -W 8:00 #limit the job to be finished in 12 hours
+#BSUB -J "bwa[1-32]"
+#BSUB -q long  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+#BSUB -w "done(9390569)"
+
+i=$(($LSB_JOBINDEX- 1))
+mkdir -p logs
+
+module load bwa/0.7.17 
+module load samtools/1.9 
+
+
+in=trimmed.data
+
+R1=(`ls $in/*R1Utrim.fastq.gz`)
+R2=(`ls $in/*R2Utrim.fastq.gz`)
+
+cat ${R2[$i]} >> ${R1[$i]}
+
+name=(`ls  $in/*R1Utrim.fastq.gz | perl -p -e 's{.+/(.+?)\.R1Utrim.fastq.gz}{$1}g'`)
+out=results/007.bwa.out/
+mkdir -p ${out}
+
+fasta=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.dna.primary_assembly.fa
+
+time bwa mem -M -t 4 -R "@RG\tID:${name[$i]}\tPL:ILLUMINA\tSM:${name[$i]}\tPU:unit1\tLB:${name[$i]}"  $fasta  ${R1[$i]}  | \
+     samtools sort  -l 5 -m 4G -o $out/${name[$i]}.SE.sort.bam  -O BAM -@ 4  -
+
+samtools index $out/${name[$i]}.SE.sort.bam 

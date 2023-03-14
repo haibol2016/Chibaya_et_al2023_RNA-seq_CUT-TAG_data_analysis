@@ -1,0 +1,38 @@
+#!/bin/bash
+
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 4:00 #limit the job to be finished in 12 hours
+#BSUB -J "fastqc[1-38]"
+#BSUB -q short  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(4567267)"
+
+
+i=$(($LSB_JOBINDEX- 1))
+
+mkdir -p logs
+
+module load R/4.0.4_gcc
+module load  jdk/1.8.0_77 
+PICARD=~/work/mccb/bin/picard-2.9.0/picard.jar
+
+
+bams=(`ls results/004.markdup.bam.out/*.bam `)
+names=(`ls results/004.markdup.bam.out/*.bam | perl -p -e 's{.+/(.+?).rmvdup.bam}{$1}'`)
+
+out=results/006.library.insert.size.out
+mkdir -p $out
+
+fasta=~/work/mccb/genome/Homo_sapiens/human_gencode_v34/GRCh38.primary_assembly.genome.fa
+
+## NextSeq uses  unpatterned flow cells: OPTICAL_DUPLICATE_PIXEL_DISTANCE=100
+## patterned flow cells OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500
+
+java -jar -Xmx8G -Djava.io.tmpdir=$TMPDIR  $PICARD  CollectInsertSizeMetrics \
+      I=${bams[$i]} \
+      O=$out/${names[$i]}.insert_size_distr.txt \
+      H=$out/${names[$i]}.insert_size_histogram.pdf 
+

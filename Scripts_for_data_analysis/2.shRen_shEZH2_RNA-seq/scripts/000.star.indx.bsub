@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=16000] # ask for memory 5G
+#BSUB -W 8:00 #limit the job to be finished in 12 hours
+#BSUB -J "fastQC[1]"
+#BSUB -q long   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(5423513)"
+
+i=$(($LSB_JOBINDEX- 1))
+mkdir -p logs
+
+module load java/1.8.0_77 
+module load star/2.5.3a
+
+fasta=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.dna.primary_assembly.fa
+gtf=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.101.gtf
+overhang=(149)
+out=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Ensembl.GRCm38.101.star253
+mkdir -p $out
+
+STAR --runMode genomeGenerate \
+        --runThreadN 8  --genomeDir $out   \
+        --limitGenomeGenerateRAM 128000000000  \
+        --sjdbGTFfile $gtf \
+        --sjdbOverhang ${overhang[$i]} \
+        --genomeFastaFiles $fasta \
+        --outFileNamePrefix ${overhang[$i]} 

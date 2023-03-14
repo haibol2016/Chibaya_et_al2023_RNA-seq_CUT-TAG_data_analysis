@@ -1,0 +1,34 @@
+#!/bin/bash
+#BSUB -n 8 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 32G
+#BSUB -R  "select[rh=8]"
+#BSUB -W 72:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[1-4]"
+#BSUB -q long # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+set -euo pipefail
+IFS=$'\n\t'  # The $'...' syntax creates a string, with backslash-escaped characters replaced with special characters - 
+             # like "\t" for tab and "\n" for newline.)
+
+mkdir -p logs
+
+module load singularity/3.7.1
+
+chrom_size=docs//Mus_musculus_GRCm38.p5.chromosome.sizes
+
+in=results/021.groupwise.bw.out
+c_bedgraph=(`ls $in/*C.bigwig`)
+v_bedgraph=(`ls $in/*V.bigwig`)
+
+names=(`ls $in/*C.bigwig | perl -p -e 's{.+/(.+?)C.bigwig}{$1C-$1V}'`)
+out=results/022.contrast.bw.out
+mkdir -p $out
+
+singularity run docs/wiggletools.sif diff ${c_bedgraph[$i]} ${v_bedgraph[$i]} > $out/${names[$i]}.bedGraph
+
+# | ~/work/mccb/bin/ucsc_utils_linux.x86_64/bedGraphToBigWig -  ${chrom_size}  ${names[$i]}.bigwig        
+

@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 8:00 #limit the job to be finished in 12 hours
+#BSUB -J "genrich[5]"
+#BSUB -q long   # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(5423513)"
+
+i=$(($LSB_JOBINDEX - 1))
+mkdir -p logs
+
+genrich=/home/hl84w/work/mccb/bin/Genrich/Genrich
+
+names=(`ls results/009.samtools.merge.out/*.bam | grep -v 'outliner' | grep 'name.sort'| perl -p -e 's{.+/(.+?)\d+\..+}{$1}' | uniq`)
+bam=(`ls results/009.samtools.merge.out/${names[$i]}*.bam `)
+bams=$(printf ",%s"  "${bam[@]}")
+bams=${bams:1}
+
+
+out=results/011.Genrich.out
+mkdir -p $out
+
+$genrich -t $bams  -o $out/${names[$i]}.p001.Genrich.narrowPeak \
+         -k $out/${names[$i]}.p001.Genrich.bedGraph  -j -y -e MT -m 20 -v -p 0.01
+
+$genrich -t  $bams  -o $out/${names[$i]}.q005.Genrich.narrowPeak \
+         -k $out/${names[$i]}.q005.Genrich.bedGraph  -j -y -e MT -m 20 -v -q 0.05 

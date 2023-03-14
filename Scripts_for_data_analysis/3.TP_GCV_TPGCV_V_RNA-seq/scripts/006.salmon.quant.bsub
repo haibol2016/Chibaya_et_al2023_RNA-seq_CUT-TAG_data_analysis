@@ -1,0 +1,36 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 4:00 #limit the job to be finished in 12 hours
+#BSUB -J "star[1-19]"
+#BSUB -q short  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#bsub -R "select[rh=6]"
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(516056)"
+
+i=$(($LSB_JOBINDEX- 1))
+
+
+genome=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.dna.primary_assembly.fa
+transcriptome=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.101.cdna.ncrna.fa
+tx2gene=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.101.gtf
+
+# grep "^>" $genome | perl -p -e 's{>(\S+).+}{$1}'  > docs/ Mus_musculus.GRCm38.genome.decoys.txt
+
+# salmon index -t <(cat $genome $transcriptome)  -d <(grep "^>" $genome | perl -p -e 's{>(\S+).+}{$1}')  -p 8 -i docs/Mus_musculus.GRCm38.v101.salmon.index
+
+in=data
+R1=($in/*_1.fq.gz)
+R2=($in/*_2.fq.gz)
+name=(`ls $in/*_1.fq.gz | perl -p -e 's{.+/(.+?)_1.fq.gz}{$1}'`)
+
+out=results/006.salmon.quant.out
+mkdir -p $out
+
+salmon quant -i docs/Mus_musculus.GRCm38.v101.salmon.index  -l IU  \
+             -1 ${R1[$i]}  -2 ${R2[$i]}  --validateMappings --mimicBT2 \
+            --recoverOrphans -p 8 --rangeFactorizationBins 4 --seqBias \
+            --gcBias --softclipOverhangs --geneMap $tx2gene  -o $out/${name[$i]}

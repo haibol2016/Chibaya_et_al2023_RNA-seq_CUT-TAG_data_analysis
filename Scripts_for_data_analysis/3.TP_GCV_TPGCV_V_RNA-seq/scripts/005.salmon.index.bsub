@@ -1,0 +1,24 @@
+#!/bin/bash
+
+#BSUB -n 8  # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=8000] # ask for memory 5G
+#BSUB -W 12:00 #limit the job to be finished in 12 hours
+#BSUB -J "star[1]"
+#BSUB -q long  # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#bsub -R "select[rh=6]"
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+##BSUB -w "done(3468063)"
+
+i=$(($LSB_JOBINDEX- 1))
+
+
+genome=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.dna.primary_assembly.fa
+transcriptome=~/work/mccb/genome/Mus_musculus_GRCm38.p5/Mus_musculus.GRCm38.101.cdna.ncrna.fa
+
+# grep "^>" $genome | perl -p -e 's{>(\S+).+}{$1}'  > docs/ Mus_musculus.GRCm38.genome.decoys.txt
+
+salmon index -t <(cat  $transcriptome $genome)  -d <(grep "^>" $genome | perl -p -e 's{>(\S+).+}{$1}')  -p 8 -i docs/Mus_musculus.GRCm38.v101.salmon.index
+
+

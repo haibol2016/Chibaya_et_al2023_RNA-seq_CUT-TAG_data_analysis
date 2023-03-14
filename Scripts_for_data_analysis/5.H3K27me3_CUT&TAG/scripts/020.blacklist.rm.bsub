@@ -1,0 +1,24 @@
+#!/bin/bash
+#BSUB -n 1 # minmal numbers of processors required for a parallel job
+#BSUB -R rusage[mem=4000] # ask for memory 32G
+#BSUB -W 2:00 #limit the job to be finished in 72 hours
+#BSUB -J "ATACseqQC[2-10]"
+#BSUB -q short # which queue we want to run in
+#BSUB -o logs/out.%J.%I.txt # log
+#BSUB -e logs/err.%J.%I.txt # error
+#BSUB -R "span[hosts=1]" # All hosts on the same chassis"
+i=$(($LSB_JOBINDEX -1))
+
+mkdir -p logs
+
+module load bedtools/2.29.2
+in=results/008.Genrich.out
+
+bw=(`ls $in/*q0.05.Genrich.narrowPeak `)
+
+labels=(`ls $in/*q0.05.Genrich.narrowPeak | perl -p -e 's{.+/(.+?)(-me)?.q0.05.Genrich.narrowPeak}{${1}-H3K27me3}'`)
+
+out=results/008.filtered.Genrich.out
+mkdir -p $out
+
+cat  ${bw[$i]}  | bedtools intersect  -v  -a stdin  -b docs/GRCm38-blacklist.v2.bed  > $out/${labels[$i]}.blacklist.rmvd.q0.05.Genrich.narrowPeak
