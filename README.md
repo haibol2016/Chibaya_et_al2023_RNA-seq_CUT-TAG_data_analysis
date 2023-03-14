@@ -1,3 +1,3 @@
-# Data analysis for Marcus's Nature Cancer paper
+# Data analysis for Chibaya et al. 2023
 
-This repo contains scripts for RNA-seq, ATAC-seq, and CUT&TAG data analysis
+This repo contains scripts for RNA-seq, and CUT&TAG data analyses
