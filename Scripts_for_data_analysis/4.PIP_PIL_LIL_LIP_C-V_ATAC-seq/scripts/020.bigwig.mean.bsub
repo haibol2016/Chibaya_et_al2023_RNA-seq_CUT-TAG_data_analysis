@@ -1,8 +1,0 @@
-
-cd results/019.samplewise.bw.out/
-mkdir -p ../020.groupwise.bw.out
-singularity shell ../../docs/wiggletools.sif
-for f in `ls *| perl -p -e 's{}{}'`
-do
-  wiggletools mean ${f}*.bigwig > ../020.groupwise.bw.out/${f}.bigwig
-done 
